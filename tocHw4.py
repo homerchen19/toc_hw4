@@ -55,7 +55,7 @@ def findtype(list_tmp):
 				continue
 
 for line in infile:
-	url = re.findall('"WARC-Target-URI"[ :]+((?=\[)\[[^]]*\]|(?=\{)\{[^\}]*\}|\"[^"]*\")', line) 
+	url = re.findall('"WARC-Target-URI":"[^"]*"', line) 
 	str_url = ''.join(url)
 	url2 = re.findall('"([^"]*)"', str_url)
 	str_url = ''.join(url2)
@@ -66,7 +66,7 @@ for line in infile:
 		#print 'str_url:'+ str_url
 		#print query
 
-		list_links = re.findall('"Links"[ :]+((?=\[)\[[^]]*\]|(?=\{)\{[^\}]*\}|\"[^"]*\")', line)
+		list_links = re.findall('"Links":((?=\[)\[[^]]*\]|(?=\{)\{[^\}]*\}|\"[^"]*\")', line)
 		str_links = ''.join(list_links)
 
 		list_href = re.findall('"href":+"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),])+[?]?"', str_links) #parse 'http(s):'
