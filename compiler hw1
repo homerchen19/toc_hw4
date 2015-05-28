@@ -1,0 +1,565 @@
+#include <iostream>		// For I/O to counsel window.
+#include <fstream>		// For I/O to external files.
+#include <cstring>
+#include <string>		// For string declaration and functions.
+#include <cstdlib>		// For access of standard library
+
+
+using namespace std;
+
+// Global variables accessible by all the functions.
+char ch;
+char outFile[32];	// Character array holding output file name
+string token;		// String holds tokens
+ofstream fout;		// Output file stream
+int Line_number; //  count the line number
+int dash_flag;   //  if "//" appear , flag=1 判斷有沒有注解符號
+int firstNumber; //if first char is number then firstNumber=1; 判斷error,數字開頭的變數
+
+// Arrays of language token used by source code.
+const string Operators[] = {">", "<", ">=", "<=","=","!","+","-","*","/","==","!=","&&","||"};
+const string specialSymbols[] = {"{", "}", "[", "]", "{}", "[]","()","(",")",";",","};
+const string keywords[] = {"return", "else", "if", "break", "for", "while", "print", "int", "float","char","double"};
+
+
+// Function extracts the name of output file from input file that
+// is passed in as a parameter and opens it. //output file 名稱取自 input file 名稱
+void openOutputFile(char *pInFile) {
+	// Local variables accessible only in this function.
+	int i;
+	string strOut = pInFile;
+
+	for (i = 0; i<strOut.length(); i++)
+		outFile[i] = strOut[i];
+
+	// Open the output file name.
+	fout.open(outFile);
+}
+
+// Function extracts lexeme from the source code and returns it.
+string GetToken(ifstream &pfin) {
+	// Temporary string, which will hold extcated lexeme
+	string tempStr = "";
+	//去除空白和換行
+	while (!(ch == '\n' || ch == ' '))
+    {
+        if(ch == '{' || ch == '}' || ch == '[' || ch == ']' || ch == '('  || ch == ')'  || ch == ';'  || ch == ',' )
+            break;
+        else if(ch == '>' || ch == '<' || ch == '=' || ch == '!' || ch == '+'  || ch == '-'  || ch == '*'  || ch == '/' || ch == '|' || ch == '&' )
+            break;
+        else
+        {
+            tempStr += ch;
+            pfin.get(ch);
+        }
+	}
+
+	// Return the string.
+	return tempStr;
+}
+
+string dash(ifstream &pfin)
+{
+    string tempStr = "";
+    string tempStr2 = "";
+    tempStr += ch;
+    tempStr2 += ch;
+
+    if(ch=='/')
+    {
+         pfin.get(ch);
+         tempStr2 += ch;
+         if(ch=='/')
+         {
+            return tempStr2;
+         }
+         else //if it is number
+         {
+            return tempStr;
+         }
+
+
+    }
+    else
+    {
+        return tempStr;
+    }
+}
+
+string compareOP(ifstream &pfin) // >=,<=,==,!=,&&,||
+{
+    string tempStr = "";
+    string tempStr2 = "";
+    tempStr += ch;
+    tempStr2 += ch;
+
+    pfin.get(ch);
+    tempStr2 += ch;
+
+    if(ch=='>' || ch=='<' || ch=='=' || ch=='!' || ch=='|' || ch=='&')
+    {
+        return tempStr2;
+    }
+    else
+    {
+        return tempStr;
+    }
+}
+
+
+// Boolean function returns true if the lexeme is key word, else false.
+bool isKeyword(string pTok)
+{
+	// Traverse through array of reservd words.
+	for (int i = 0; i < 11; i++) {
+		// Return true if key word matches parameter lexeme
+		if (pTok == keywords[i])
+			return true;
+	}
+
+	return false;
+}
+
+// Function returns boolean value true if the parameter lexeme is an integer else it return false.
+bool isInteger(string pTok)
+{
+	// Traverse through lexeme to check if all characters are digit or not.
+    for (int i = 0; i < pTok.length(); i++) {
+		if (!isdigit(pTok[i]))
+			return false;
+	}
+
+    return true;
+}
+
+// Function returns boolean value true if the parameter lexeme is an float else it return false.
+bool isFloat(string pLex)
+{
+	int dots = 0;	   // Variable to count number of dots in the string.
+
+	for (int i = 0; i < pLex.length(); i++) {
+		// Return false if it is invalid character or there are two or more dots in the string.
+		if (!isdigit(pLex[i]) && pLex[i] != '.')
+			return false;
+		else if (pLex[i] == '.')
+			dots++;
+		if (dots >= 2)
+			return false;
+	}
+
+	// Return true if it is flaot.
+	return true;
+}
+
+// Boolean function returns true if the lexeme is an identifier, else it
+// return false.
+bool isIdentifier(string pLex)
+{
+	// Check whether each character is either numerical or alphabetical.
+	if (isalpha(pLex[0]))
+    { //判斷開頭為數字之變數 number at the first => false
+		for (int i = 0; i < pLex.length(); i++)
+		{
+			// Return false if non-valid character is found.
+			if (!isalnum(pLex[i]) && !strchr("_", pLex[i]))
+                return false;
+        }
+	}
+	else
+    {
+		return false;
+	}
+
+	// Return true if the string is valid
+	return true;
+}
+
+// Function returns true if character is Comparison Operator, else False.
+bool isCompOp(string pLex)
+{
+	// Traverse through the list of comparison operator
+	for (int i = 0; i < 14; i++)
+    {
+		// Return true if match is found.
+		if (pLex == Operators[i])
+			return true;
+	}
+
+	return false;
+}
+
+// Function returns true if string is grouping operator, else return false.
+bool isGroupOp(string pLex)
+{
+	// Traverse through list of grouping operators
+	for (int i = 0; i < 11; i++) {
+		// Return true if the string is found.
+		if (pLex == specialSymbols[i])
+			return true;
+	}
+
+	// Return false if no match is found.
+	return false;
+}
+
+// Function performs error analysis of invalid string and inserts the
+// right token
+void errorAnalysis(string pLex)
+{
+
+	fout << '\t' << '\t' << "<Error>" << '\t' << '\t' << ":" << '\t' << pLex << endl;
+}
+
+// Main function will perform lexical analysis by calling other 'helper' functions.
+int main()
+{
+    int Line_number=1;
+    firstNumber=0;
+    dash_flag=0;
+
+		// It is assumed that argv[1] will hold input file name.
+		ifstream fin("main.c"); //以輸入方式打開文件
+
+		// Print error message if file fails to open.
+		if (fin.fail())
+        {
+			cout << "Error! Unable to Open the File." << endl;
+			exit(1);
+		}
+		else
+			openOutputFile("token.txt");
+
+        fout << "Line "  << Line_number << ":"<< endl;
+
+		// Read character until end of file character is read.
+
+		while (fin.get(ch))
+		{//一個字一個字抓取
+
+		    // If the character is mathematical operator.
+			if (strchr(".+-*/", ch) && dash_flag==0)
+            {
+				// Extract the lexeme from the code.
+				token = dash(fin);
+				cout << token << endl;
+
+				// If length of the token is 1
+				if (token.length() == 1 && dash_flag==0 )
+                {
+                    fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                }
+				else
+                {
+                    dash_flag=1;
+                }
+
+			}
+
+			// If the character is "><=!+-*/&|"
+			if (strchr("><=!&|", ch) && dash_flag==0)
+            {
+				// Extract the lexeme from the code.
+				token = compareOP(fin);
+				cout << token << endl;
+
+				// If the character is comparison operator.
+				if (isCompOp(token))
+					fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+				else
+                {
+                    errorAnalysis(token);
+                }
+
+			}
+
+			// If the character is digit or alphabetical  //英文 or 數字
+			if (isalnum(ch) && dash_flag==0)
+            {
+				// Extract the token from the source code.
+
+				token = GetToken(fin);
+				cout << token << endl;
+
+				// Check if the token is keyword, integer, float, or
+				// identifier, else perform error analysis of that token.
+				if (isKeyword(token))
+                {
+                    fout << '\t' << '\t' << "<Keyword>" << '\t' << ":" << '\t' << token << endl;
+                }
+				else if (isInteger(token))
+                {
+                    fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+
+                    if (strchr("><=!&|", ch) && dash_flag==0)  //when Identifier(+-*/)Identifier need to print (+-*/) 當a<3 <如果不在此判斷  將不被印出
+                    {
+                        // Extract the lexeme from the code.
+                        token = compareOP(fin);
+                        cout << token << endl;
+
+                        // If the character is comparison operator.
+                        if (isCompOp(token))
+                            fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                        else
+                        {
+                            errorAnalysis(token);
+                        }
+
+                    }
+
+                    if(isalnum(ch))  //when <= follow the Identifier or number 當a<3 無此判斷 3將不被印出
+                    {
+                        token = GetToken(fin);
+                        cout << token << endl;
+
+                        if (isInteger(token))
+                            fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+                        else if (isFloat(token))
+                        {
+                            fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+                        }
+                        else if (isIdentifier(token))
+                        {
+                            fout << '\t' << '\t' << "<Identifier>"<< ":" << '\t' << token << endl;
+                        }
+                        else
+                        {
+                            errorAnalysis(token);
+                        }
+                    }
+
+                    if (strchr(".+-*/", ch) )  //when Identifier(+-*/)Identifier need to print (+-*/) 當a=a*3/2 /如果不在此判斷  將不被印出 (判斷數字後的符號)
+                    {
+                        // Extract the lexeme from the code.
+                        token = ch;
+                        cout << token << endl;
+
+                        // If length of the token is 1
+                        if (token.length() == 1 )
+                        {
+                            fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                        }
+                    }
+                }
+				else if (isFloat(token))
+                {
+                    fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+
+                    if (strchr("><=!&|", ch) && dash_flag==0)  //when Identifier(+-*/)Identifier need to print (+-*/) 當a<3 <如果不在此判斷  將不被印出
+                    {
+                        // Extract the lexeme from the code.
+                        token = compareOP(fin);
+                        cout << token << endl;
+
+                        // If the character is comparison operator.
+                        if (isCompOp(token))
+                            fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                        else
+                        {
+                            errorAnalysis(token);
+                        }
+
+                    }
+
+                    if(isalnum(ch))  //when <= follow the Identifier or number 當a<3 無此判斷 3將不被印出
+                    {
+                        token = GetToken(fin);
+                        cout << token << endl;
+
+                        if (isInteger(token))
+                            fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+                        else if (isFloat(token))
+                        {
+                            fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+                        }
+                        else if (isIdentifier(token))
+                        {
+                            fout << '\t' << '\t' << "<Identifier>"<< ":" << '\t' << token << endl;
+                        }
+                        else
+                        {
+                            errorAnalysis(token);
+                        }
+                    }
+
+                    if (strchr(".+-*/", ch) )  //when Identifier(+-*/)Identifier need to print (+-*/) 當a=a*3/2 /如果不在此判斷  將不被印出 (判斷數字後的符號)
+                    {
+                        // Extract the lexeme from the code.
+                        token = ch;
+                        cout << token << endl;
+
+                        // If length of the token is 1
+                        if (token.length() == 1 )
+                        {
+                            fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                        }
+                    }
+
+                }
+				else if (isIdentifier(token))
+                {
+                    fout << '\t' << '\t' << "<Identifier>"<< ":" << '\t' << token << endl;
+
+
+                    if (strchr("><=!&|", ch) && dash_flag==0)  //when Identifier(+-*/)Identifier need to print (+-*/) 當a<3 <如果不在此判斷  將不被印出
+                    {
+                        // Extract the lexeme from the code.
+                        token = compareOP(fin);
+                        cout << token << endl;
+
+                        // If the character is comparison operator.
+                        if (isCompOp(token))
+                            fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                        else
+                        {
+                            errorAnalysis(token);
+                        }
+
+                    }
+
+                    if(isalnum(ch))  //when <= follow the Identifier or number 當a<3 無此判斷 3將不被印出
+                    {
+                        token = GetToken(fin);
+                        cout << token << endl;
+
+                        if (isInteger(token))
+                            fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+                        else if (isFloat(token))
+                        {
+                            fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+                        }
+                        else if (isIdentifier(token))
+                        {
+                            fout << '\t' << '\t' << "<Identifier>"<< ":" << '\t' << token << endl;
+                        }
+                        else
+                        {
+                            errorAnalysis(token);
+                        }
+                    }
+
+                    if (strchr(".+-*/", ch) )  //when Identifier(+-*/)Identifier need to print (+-*/) 當a=a*3 *如果不在此判斷  將不被印出
+                    {
+                        // Extract the lexeme from the code.
+                        token = ch;
+                        cout << token << endl;
+
+                        // If length of the token is 1
+                        if (token.length() == 1 )
+                        {
+                            fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                        }
+
+                    }
+                }
+				else
+                {
+                    errorAnalysis(token);
+
+                    if (strchr("><=!&|", ch) && dash_flag==0)  //when Identifier(+-*/)Identifier need to print (+-*/) 當a<3 <如果不在此判斷  將不被印出
+                    {
+                        // Extract the lexeme from the code.
+                        token = compareOP(fin);
+                        cout << token << endl;
+
+                        // If the character is comparison operator.
+                        if (isCompOp(token))
+                            fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                        else
+                        {
+                            errorAnalysis(token);
+                        }
+
+                    }
+
+                    if(isalnum(ch))  //when <= follow the Identifier or number 當a<3 無此判斷 3將不被印出
+                    {
+                        token = GetToken(fin);
+                        cout << token << endl;
+
+                        if (isInteger(token))
+                            fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+                        else if (isFloat(token))
+                        {
+                            fout << '\t' << '\t' << "<Number>" << '\t' << ":" << '\t' << token << endl;
+                        }
+                        else if (isIdentifier(token))
+                        {
+                            fout << '\t' << '\t' << "<Identifier>"<< ":" << '\t' << token << endl;
+                        }
+                        else
+                        {
+                            errorAnalysis(token);
+                        }
+                    }
+
+                    if (strchr(".+-*/", ch) )  //when Identifier(+-*/)Identifier need to print (+-*/) 當a=a*3 *如果不在此判斷  將不被印出
+                    {
+                        // Extract the lexeme from the code.
+                        token = ch;
+                        cout << token << endl;
+
+                        // If length of the token is 1
+                        if (token.length() == 1 )
+                        {
+                            fout << '\t' << '\t' << "<Operator>" << '\t' << ":" << '\t' << token << endl;
+                        }
+
+                    }
+                }
+
+			}
+
+
+			if (strchr("{}[]();,", ch) && dash_flag==0)
+            {
+				// Extract the lexeme from the code.
+				//token = GetToken(fin);
+				token = ch ;
+				cout << token << endl;
+
+				// If the string is grouping operator
+				if (isGroupOp(token))
+					fout << '\t' << '\t' << "<Special>" << '\t' << ":" << '\t' << token << endl;
+				else
+                {
+                    errorAnalysis(token);
+                }
+			}
+
+
+			if(strchr("'", ch) && dash_flag==0)  //If the String is char 'character'
+			{
+				token = GetToken(fin);
+				fout << '\t' << '\t' << "<Char>" << '\t' << '\t' << ":" << '\t' << token << endl;
+
+				if (strchr("{}[]();,", ch) && dash_flag==0)
+                {
+                    // Extract the lexeme from the code.
+                    //token = GetToken(fin);
+                    token = ch ;
+                    cout << token << endl;
+
+                    // If the string is grouping operator
+                    if (isGroupOp(token))
+                        fout << '\t' << '\t' << "<Special>" << '\t' << ":" << '\t' << token << endl;
+                    else
+                    {
+                    errorAnalysis(token);
+                    }
+                }
+			}
+
+			if(ch=='\n')  //換行顯示
+            {
+                Line_number++;
+                fout << "Line "  << Line_number << ":"<< endl;
+                dash_flag=0;
+            }
+
+
+		}
+
+		// Close input and output files.
+		fin.close();
+		fout.close();
+}
