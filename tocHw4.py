@@ -56,7 +56,7 @@ for line in infile:
 	if (str_url.find(query) >= 0): # compare web pages & query
 		nofound1 = 1
 
-		links = re.findall('"Links":(\[(\{([^\}])*\})(\,\{[^\}]*\})*([^\]]*)\])', line)
+		links = re.findall('"Links":\[(.+)\](,"Head"|\},"Entity-Digest")', line)
 		#print "len = " + str(len(links))
 		str_links = ''.join(str(i) for i in links)
 
