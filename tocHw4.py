@@ -2,34 +2,30 @@ import re
 import sys
 import os.path
 
-def validate_inputfile():
-	try:
-		filename = sys.argv[1]
-		if os.path.exists(filename):
-			pass
-		else:
-			raise IOError
-	except IndexError:
-		print "There is no input file"
+def verify_inputfile():
+	inputfile = sys.argv[1]
+	if os.path.exists(inputfile):
+		pass
+	elif not os.path.exists(inputfile):
+		print "There is no " + inputfile
 		sys.exit(0)
-	except IOError:
-		print "There is no such file: {0}".format(filename)
+	else:
+		print "There is no input file !"
 		sys.exit(0)
-	return filename
+		
+	return inputfile
 
-def validate_query():
-	try:
+def verify_query():
+	if len(sys.argv) > 2:
 		query = sys.argv[2]
-		if os.path.exists(query):
-			pass
-	except IndexError:
+	else:
 		print "There is no query"
 		sys.exit(0)
+	return query
 
-valid_infile = validate_inputfile()
+valid_infile = verify_inputfile()
 infile = open(valid_infile, 'r')
-validate_query()
-query = sys.argv[2]
+query = verify_query()
 
 nofound1, nofound2 = 0, 0
 typeNum = {}
