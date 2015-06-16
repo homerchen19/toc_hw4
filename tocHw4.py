@@ -16,6 +16,8 @@
 import re
 import sys
 import os.path
+#import time
+#tStart = time.time()
 
 def verify_inputfile():
 	inputfile = sys.argv[1]
@@ -44,30 +46,35 @@ query = verify_query()
 
 nofound1, nofound2 = 0, 0
 typeNum = {}
-
+lineNum = 0
 def findtype(list_tmp):
 	global nofound1, nofound2, query
-	global typeNum
+	global typeNum, lineNum
 	for item in list_tmp: #item = each elements in list_href. Its type is string
 		#print item
 		find_error = re.findall('/', item)
-		#print find_error
 		if(len(find_error) != 0):
 			if(item.find(query) < 0): # if item doesn't contain query
-				item = re.findall('[.]([\w]+)[\?|"]', item) #parse the last type
+				item2 = re.search('[.]([\w]+)[\?|"]', item) #parse the last type
 				
-				if item:
+				if (item2 != None):
 					nofound2 = 1;
-					tmp = ''.join(item[0])
+					tmp = item2.group(1)
+		
 					if tmp in typeNum:
 						typeNum[tmp] += 1
 					else:
 						typeNum[tmp] = 1
 					#print typeNum
 
+
 for line in infile:
-	url = re.findall('"WARC-Target-URI":"([^"]*)"', line) 
-	str_url = ''.join(url)
+	lineNum+=1;
+	'''url = re.findall('"WARC-Target-URI":"([^"]*)"', line) 
+	str_url = ''.join(url)'''
+	url = re.search('"WARC-Target-URI":"([^"]*)"', line) 
+	if(url != None):
+		str_url = url.group(1)
 
 	if (str_url.find(query) >= 0): # compare web pages & query
 		nofound1 = 1
@@ -76,10 +83,8 @@ for line in infile:
 		#print "len = " + str(len(links))
 		str_links = ''.join(str(i) for i in links)
 
-		list_href = re.findall('"href":+\"http[s]?://([^"]*\")', str_links) #parse 'http(s):'
-		
-		
-		findtype(list_href)
+		#list_href = re.findall('"href":+\"http[s]?://([^"]*\")', str_links) #parse 'http(s):'
+		#findtype(list_href)
 
 		list_url = re.findall('"url":+\"http[s]?://([^"]*\")', str_links)
 		findtype(list_url)
@@ -91,3 +96,6 @@ elif nofound2 == 0:
 else:
 	for x in typeNum:
 		print x, ':' ,typeNum[x]
+
+#tEnd = time.time()
+#print "It cost %f sec" % (tEnd - tStart)
