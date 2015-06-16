@@ -1,3 +1,17 @@
+'''
+學號:F74016297
+系級:資訊105甲班
+姓名:陳自泓
+程式簡單說明:
+	一開始先做輸入檔案與topk的確認，
+	分別是(1)verify_inputfile跟(2)verify_topk 這兩個function
+	接著一行一行讀檔案，
+	然後依序用regux抓"WARC-Target-URI","Links",
+	抓"href"後去跑findtype(),
+	是為了抓附檔名然後用一個dictionary去存附檔名的名稱跟其相對數量，
+	抓"url"也是做一樣的動作，
+	最後print出附檔名和相對的數量即可
+'''
 import re
 import sys
 import os.path
@@ -45,6 +59,7 @@ def findtype(list_tmp):
 				else:
 					typeNum[tmp] = 1
 				#print typeNum
+
 for line in infile:
 	url = re.findall('"WARC-Target-URI":"([^"]*)"', line) 
 	str_url = ''.join(url)
