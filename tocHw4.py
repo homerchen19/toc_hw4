@@ -20,6 +20,9 @@ import os.path
 #tStart = time.time()
 
 def verify_inputfile():
+	if len(sys.argv) < 2:
+		print "There is no input file and query !"
+		sys.exit(0)
 	inputfile = sys.argv[1]
 	if os.path.exists(inputfile):
 		pass
@@ -55,17 +58,33 @@ def findtype(list_tmp):
 		find_error = re.findall('/', item)
 		if(len(find_error) != 0):
 			if(item.find(query) < 0): # if item doesn't contain query
-				item2 = re.search('[.]([\w]+)[\?|"]', item) #parse the last type
-				
+				item2 = re.search('[\?]', item)
 				if (item2 != None):
-					nofound2 = 1;
-					tmp = item2.group(1)
-		
-					if tmp in typeNum:
-						typeNum[tmp] += 1
-					else:
-						typeNum[tmp] = 1
-					#print typeNum
+					item2 = re.search('[\w]+[\.]([^\.^\/]+)[\?]', item)
+					if (item2 != None):
+						nofound2 = 1;
+						tmp = item2.group(1)
+						#print "line = "+ str(lineNum) + " tmp?? = " + tmp;
+			
+						if tmp in typeNum:
+							typeNum[tmp] += 1
+						else:
+							typeNum[tmp] = 1
+				else:
+					item2 = re.search('\.([^\.^\/]+)[?:\?|"]', item) #parse the last type
+					
+					if (item2 != None):
+						nofound2 = 1;
+						tmp = item2.group(1)
+
+						#print "item = " + item
+						#print "line = "+ str(lineNum) + " tmp = " + tmp
+			
+						if tmp in typeNum:
+							typeNum[tmp] += 1
+						else:
+							typeNum[tmp] = 1
+						#print typeNum
 
 
 for line in infile:
@@ -83,8 +102,8 @@ for line in infile:
 		#print "len = " + str(len(links))
 		str_links = ''.join(str(i) for i in links)
 
-		#list_href = re.findall('"href":+\"http[s]?://([^"]*\")', str_links) #parse 'http(s):'
-		#findtype(list_href)
+		list_href = re.findall('"href":+\"http[s]?://([^"]*\")', str_links) #parse 'http(s):'
+		findtype(list_href)
 
 		list_url = re.findall('"url":+\"http[s]?://([^"]*\")', str_links)
 		findtype(list_url)
